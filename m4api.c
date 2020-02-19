@@ -377,6 +377,28 @@ int m4ParseValue(m4Handle *dev, enum m4Type type, char const *strval, char *buf)
   return 0;
 }
 
+int m4SetBinary(m4Handle *dev, struct m4ConfigField *field, char const *val) {
+  char buf[24];
+  unsigned char cmd[24] = {0xa4, 0xa0};
+
+  cmd[2] = field->index;
+  cmd[3] = m4TypeLengths[field->type];
+  cmd[4] = val[0];
+  cmd[5] = val[1];
+
+  if (m4Write(dev, cmd, 24, TIMEOUT) != 24)
+    return -1;
+
+  if (m4Read(dev, buf, 24, TIMEOUT) != 24)
+    return -1;
+
+  if (buf[0] != 0x31 || buf[2] != cmd[2]
+      || buf[4] != cmd[4] || buf[5] != cmd[5])
+    return -1;
+
+  return 0;
+}
+
 int m4GetFloat(m4Handle *dev, enum m4FieldID fid, float *out) {
   char buf[24];
   struct m4ConfigField *field;
@@ -454,28 +476,6 @@ int m4SetConfig(m4Handle *dev, struct m4ConfigField *field, char const *strval) 
     return -1;
 
   return m4SetBinary(dev, field, binary);
-}
-
-int m4SetBinary(m4Handle *dev, struct m4ConfigField *field, char const *val) {
-  char buf[24];
-  unsigned char cmd[24] = {0xa4, 0xa0};
-
-  cmd[2] = field->index;
-  cmd[3] = m4TypeLengths[field->type];
-  cmd[4] = val[0];
-  cmd[5] = val[1];
-
-  if (m4Write(dev, cmd, 24, TIMEOUT) != 24)
-    return -1;
-
-  if (m4Read(dev, buf, 24, TIMEOUT) != 24)
-    return -1;
-
-  if (buf[0] != 0x31 || buf[2] != cmd[2]
-      || buf[4] != cmd[4] || buf[5] != cmd[5])
-    return -1;
-
-  return 0;
 }
 
 void m4PrintDiag(m4Handle *dev, char *buf) {
